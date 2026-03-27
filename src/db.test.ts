@@ -104,7 +104,7 @@ describe("searchJournal", () => {
     expect(results.length).toBe(1);
     expect(results[0].headline).toBe("Authentication module complete");
     expect(results[0].source).toBe("journal");
-    expect(results[0].projectId).toBe("proj-alpha");
+    expect(results[0].project).toBe("Alpha Project");
   });
 
   it("finds entries matching summary", () => {
@@ -116,31 +116,26 @@ describe("searchJournal", () => {
   it("finds entries matching topics", () => {
     const results = recall.searchJournal("performance");
     expect(results.length).toBe(1);
-    expect(results[0].topics).toContain("performance");
+    expect(results[0].summary).toContain("performance");
   });
 
-  it("returns parsed topics array", () => {
-    const results = recall.searchJournal("authentication");
-    expect(Array.isArray(results[0].topics)).toBe(true);
-    expect(results[0].topics).toContain("authentication");
-  });
-
-  it("returns parsed sessionIds array", () => {
+  it("returns sessionIds capped at 5 with total count", () => {
     const results = recall.searchJournal("authentication");
     expect(Array.isArray(results[0].sessionIds)).toBe(true);
     expect(results[0].sessionIds).toContain("sess-001");
+    expect(results[0].totalSessions).toBe(1);
   });
 
   it("filters by project id", () => {
     const results = recall.searchJournal("setup", "proj-beta");
     expect(results.length).toBe(1);
-    expect(results[0].projectId).toBe("proj-beta");
+    expect(results[0].project).toBe("Beta Project");
   });
 
   it("filters by project display name", () => {
     const results = recall.searchJournal("pipeline", "Alpha");
     expect(results.length).toBe(1);
-    expect(results[0].projectName).toBe("Alpha Project");
+    expect(results[0].project).toBe("Alpha Project");
   });
 
   it("returns empty array when no match", () => {
@@ -170,7 +165,7 @@ describe("searchConversations", () => {
 
   it("filters by project id", () => {
     const results = recall.searchConversations("test", "proj-beta");
-    expect(results.every((r) => r.projectId === "proj-beta")).toBe(true);
+    expect(results.every((r) => r.project === "Beta Project")).toBe(true);
   });
 
   it("returns empty array when no match", () => {

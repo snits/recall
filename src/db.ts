@@ -4,20 +4,18 @@
 import SqliteDatabase from "bun:sqlite";
 
 export interface JournalSearchResult {
-  sessionIds: string[];
-  projectId: string;
-  projectName: string;
+  project: string;
   date: string;
   headline: string;
   summary: string;
-  topics: string[];
+  sessionIds: string[];
+  totalSessions: number;
   source: "journal";
 }
 
 export interface ConversationSearchResult {
   sessionId: string;
-  projectId: string;
-  projectName: string;
+  project: string;
   date: string;
   snippet: string;
   source: "conversation";
@@ -93,16 +91,19 @@ export class RecallDatabase {
       topics: string;
     }>;
 
-    return rows.map((row) => ({
-      sessionIds: safeParseJson(row.session_ids, []),
-      projectId: row.project_id,
-      projectName: row.project_name,
-      date: row.date,
-      headline: row.headline,
-      summary: row.summary,
-      topics: safeParseJson(row.topics, []),
-      source: "journal" as const,
-    }));
+    const MAX_SESSION_IDS = 5;
+    return rows.map((row) => {
+      const allIds = safeParseJson<string[]>(row.session_ids, []);
+      return {
+        project: row.project_name,
+        date: row.date,
+        headline: row.headline,
+        summary: row.summary,
+        sessionIds: allIds.slice(0, MAX_SESSION_IDS),
+        totalSessions: allIds.length,
+        source: "journal" as const,
+      };
+    });
   }
 
   searchConversations(
@@ -144,8 +145,7 @@ export class RecallDatabase {
 
     return rows.map((row) => ({
       sessionId: row.session_id,
-      projectId: row.project_id,
-      projectName: row.project_name,
+      project: row.project_name,
       date: row.started_at,
       snippet: extractSnippet(row.conversation_markdown, query),
       source: "conversation" as const,
