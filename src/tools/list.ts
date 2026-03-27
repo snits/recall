@@ -38,7 +38,7 @@ export function registerListTool(
         content: [
           {
             type: "text",
-            text: JSON.stringify(results, null, 2),
+            text: JSON.stringify(results),
           },
         ],
       };
