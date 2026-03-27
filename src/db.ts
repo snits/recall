@@ -185,42 +185,16 @@ export class RecallDatabase {
 
     if (!sessionRow) return null;
 
-    let conversationText: string | null = null;
-
-    if (limit !== undefined) {
-      const convRow = this.db
-        .query(
-          `
-        SELECT substr(conversation_markdown, ?, ?) AS text
-        FROM conversations
-        WHERE session_id = ?
-      `
-        )
-        .get(offset + 1, limit, sessionId) as { text: string } | null;
-      conversationText = convRow?.text ?? null;
-    } else if (offset > 0) {
-      const convRow = this.db
-        .query(
-          `
-        SELECT substr(conversation_markdown, ?) AS text
-        FROM conversations
-        WHERE session_id = ?
-      `
-        )
-        .get(offset + 1, sessionId) as { text: string } | null;
-      conversationText = convRow?.text ?? null;
-    } else {
-      const convRow = this.db
-        .query(
-          `
-        SELECT conversation_markdown AS text
-        FROM conversations
-        WHERE session_id = ?
-      `
-        )
-        .get(sessionId) as { text: string } | null;
-      conversationText = convRow?.text ?? null;
-    }
+    const convRow = this.db
+      .query(
+        `
+      SELECT substr(conversation_markdown, ?, COALESCE(?, length(conversation_markdown))) AS text
+      FROM conversations
+      WHERE session_id = ?
+    `
+      )
+      .get(offset + 1, limit ?? null, sessionId) as { text: string } | null;
+    const conversationText = convRow?.text ?? null;
 
     return {
       sessionId: sessionRow.session_id,
