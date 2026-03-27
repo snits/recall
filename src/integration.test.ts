@@ -149,14 +149,14 @@ describe("search tool", () => {
     expect(data[0].headline).toBe("Pipeline refactor");
   });
 
-  it("finds journal entries by topic", async () => {
+  it("finds journal entries by topic keyword in summary", async () => {
     const result = await client.callTool({
       name: "search",
       arguments: { query: "performance" },
     });
-    const data = parseResult(result) as Array<{ topics: string[] }>;
+    const data = parseResult(result) as Array<{ summary: string }>;
     expect(data.length).toBe(1);
-    expect(data[0].topics).toContain("performance");
+    expect(data[0].summary).toContain("performance");
   });
 
   it("falls back to conversations when journal has fewer results than limit", async () => {
@@ -190,12 +190,9 @@ describe("search tool", () => {
       name: "search",
       arguments: { query: "the", project: "Beta" },
     });
-    const data = parseResult(result) as Array<{ projectName?: string; projectId?: string }>;
-    // All results must belong to Beta Project
+    const data = parseResult(result) as Array<{ project?: string }>;
     for (const entry of data) {
-      const id = (entry as { projectId?: string }).projectId;
-      const name = (entry as { projectName?: string }).projectName;
-      expect(id === "proj-beta" || (name && name.includes("Beta"))).toBe(true);
+      expect(entry.project).toContain("Beta");
     }
   });
 
@@ -226,7 +223,8 @@ describe("search tool", () => {
     const entry = data[0];
     expect(typeof entry.headline).toBe("string");
     expect(typeof entry.summary).toBe("string");
-    expect(Array.isArray(entry.topics)).toBe(true);
+    expect(typeof entry.project).toBe("string");
+    expect(typeof entry.totalSessions).toBe("number");
     expect(entry.source).toBe("journal");
   });
 });
