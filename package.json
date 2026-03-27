@@ -4,10 +4,11 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "start": "bun run src/index.ts"
+    "start": "bun run src/index.ts",
+    "test": "bun test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest"
+    "@modelcontextprotocol/sdk": "^1.28.0"
   },
   "devDependencies": {
     "bun-types": "latest"

@@ -10,7 +10,14 @@ import { registerReadTool } from "./tools/read.js";
 import { registerListTool } from "./tools/list.js";
 
 const config = loadConfig();
-const db = new RecallDatabase(config.databasePath);
+
+let db: RecallDatabase;
+try {
+  db = new RecallDatabase(config.databasePath);
+} catch (err) {
+  process.stderr.write(`recall: failed to open database at ${config.databasePath}: ${err}\n`);
+  process.exit(1);
+}
 
 const server = new McpServer({
   name: "recall",
