@@ -56,9 +56,9 @@ export class RecallDatabase {
   searchJournal(
     query: string,
     project?: string,
-    limit: number = 20
+    limit: number = 10
   ): JournalSearchResult[] {
-    const pattern = `%${query}%`;
+    const pattern = `%${escapeLike(query)}%`;
 
     let sql = `
       SELECT
@@ -71,7 +71,7 @@ export class RecallDatabase {
         j.topics
       FROM journal_entries j
       JOIN projects p ON p.id = j.project_id
-      WHERE (j.headline LIKE ? OR j.summary LIKE ? OR j.topics LIKE ?)
+      WHERE (j.headline LIKE ? ESCAPE '\\' OR j.summary LIKE ? ESCAPE '\\' OR j.topics LIKE ? ESCAPE '\\')
     `;
     const params: (string | number)[] = [pattern, pattern, pattern];
 
@@ -108,9 +108,9 @@ export class RecallDatabase {
   searchConversations(
     query: string,
     project?: string,
-    limit: number = 20
+    limit: number = 10
   ): ConversationSearchResult[] {
-    const pattern = `%${query}%`;
+    const pattern = `%${escapeLike(query)}%`;
 
     let sql = `
       SELECT
@@ -122,7 +122,7 @@ export class RecallDatabase {
       FROM conversations c
       JOIN sessions s ON s.id = c.session_id
       JOIN projects p ON p.id = s.project_id
-      WHERE c.conversation_markdown LIKE ?
+      WHERE c.conversation_markdown LIKE ? ESCAPE '\\'
     `;
     const params: (string | number)[] = [pattern];
 
@@ -211,7 +211,7 @@ export class RecallDatabase {
   listSessions(
     project?: string,
     date?: string,
-    limit: number = 50
+    limit: number = 20
   ): SessionListEntry[] {
     let sql = `
       SELECT
@@ -285,7 +285,10 @@ function safeParseJson<T>(value: string, fallback: T): T {
   }
 }
 
-// Extracts a short snippet of text around the first match of the query
+function escapeLike(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 function extractSnippet(text: string, query: string, radius: number = 150): string {
   const lower = text.toLowerCase();
   const idx = lower.indexOf(query.toLowerCase());
