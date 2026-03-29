@@ -124,7 +124,7 @@ Add to `~/.claude/settings.json` or project `.mcp.json`:
   "mcpServers": {
     "recall": {
       "command": "bun",
-      "args": ["run", "/home/jsnitsel/devel/recall/src/index.ts"]
+      "args": ["run", "/path/to/recall/src/index.ts"]
     }
   }
 }
