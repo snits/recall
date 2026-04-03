@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { RecallDatabase } from "./db.js";
+import { AgentBoardReader } from "./agent-board.js";
 import { registerSearchTool } from "./tools/search.js";
 import { registerReadTool } from "./tools/read.js";
 import { registerListTool } from "./tools/list.js";
@@ -24,8 +25,10 @@ const server = new McpServer({
   version: "0.1.0",
 });
 
+const agentBoard = new AgentBoardReader(config.agentBoardPath);
+
 registerSearchTool(server, db);
-registerReadTool(server, db);
+registerReadTool(server, db, agentBoard);
 registerListTool(server, db);
 
 const transport = new StdioServerTransport();

@@ -6,11 +6,12 @@ import SqliteDatabase from "bun:sqlite";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { mkdtempSync } from "fs";
+import { mkdtempSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
 import { RecallDatabase } from "./db.js";
+import { AgentBoardReader } from "./agent-board.js";
 import { registerSearchTool } from "./tools/search.js";
 import { registerReadTool } from "./tools/read.js";
 import { registerListTool } from "./tools/list.js";
@@ -104,10 +105,78 @@ beforeAll(async () => {
 
   recall = new RecallDatabase(dbPath);
 
+  // Create agent-board fixture data
+  const boardPath = join(dir, "agent-board");
+
+  // sess-001: has agent-board data with one subagent
+  const sess001Dir = join(boardPath, "sessions", "sess-001");
+  mkdirSync(sess001Dir, { recursive: true });
+  writeFileSync(
+    join(sess001Dir, "session.json"),
+    JSON.stringify({
+      agents: [{ agentId: "agent-xyz", type: "Explore", messageCount: 2 }],
+    }),
+  );
+  writeFileSync(
+    join(sess001Dir, "messages.json"),
+    JSON.stringify([
+      {
+        uuid: "m-001",
+        parentUuid: null,
+        agentId: null,
+        role: "user",
+        content:
+          "We need to implement the authentication module and fix the login bugs",
+        toolUse: [],
+        timestamp: "2024-01-05T10:00:00Z",
+        agentType: null,
+      },
+      {
+        uuid: "m-002",
+        parentUuid: "m-001",
+        agentId: null,
+        role: "assistant",
+        content:
+          "I'll implement the authentication module and fix several login bugs.",
+        toolUse: [
+          { tool: "Edit", input: { file_path: "/src/auth.ts" }, summary: "Created auth module" },
+        ],
+        timestamp: "2024-01-05T10:01:00Z",
+        agentType: null,
+      },
+      {
+        uuid: "m-003",
+        parentUuid: null,
+        agentId: "agent-xyz",
+        role: "user",
+        content: "Explore the authentication providers",
+        toolUse: [],
+        timestamp: "2024-01-05T10:01:30Z",
+        agentType: "Explore",
+      },
+      {
+        uuid: "m-004",
+        parentUuid: "m-003",
+        agentId: "agent-xyz",
+        role: "assistant",
+        content: "Found OAuth and SAML providers configured.",
+        toolUse: [
+          { tool: "Grep", input: { pattern: "provider" }, summary: "Searched for providers" },
+        ],
+        timestamp: "2024-01-05T10:02:00Z",
+        agentType: "Explore",
+      },
+    ]),
+  );
+
+  // sess-003: no agent-board data (directory not created)
+
+  const agentBoard = new AgentBoardReader(boardPath);
+
   // Wire up MCP server with all three tools
   const server = new McpServer({ name: "recall-test", version: "0.1.0" });
   registerSearchTool(server, recall);
-  registerReadTool(server, recall);
+  registerReadTool(server, recall, agentBoard);
   registerListTool(server, recall);
 
   // Connect server and client via in-memory transport
@@ -310,6 +379,82 @@ describe("read_session tool", () => {
     const data = parseResult(result) as { project: string; conversation: string };
     expect(data.project).toBe("Beta Project");
     expect(data.conversation).toContain("Beta project kickoff");
+  });
+
+  it("includes agents roster when agent-board has data", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-001" },
+    });
+    const data = parseResult(result) as {
+      agents: Array<{ agentId: string; type: string; messageCount: number }>;
+    };
+    expect(data.agents).toHaveLength(1);
+    expect(data.agents[0].agentId).toBe("agent-xyz");
+    expect(data.agents[0].type).toBe("Explore");
+    expect(data.agents[0].messageCount).toBe(2);
+  });
+
+  it("uses agent-board conversation when available", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-001" },
+    });
+    const data = parseResult(result) as { conversation: string };
+    expect(data.conversation).toContain("## User");
+    expect(data.conversation).toContain("> Tool: Created auth module");
+  });
+
+  it("falls back to notebook.db when agent-board lacks session", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-003" },
+    });
+    const data = parseResult(result) as { conversation: string; agents: unknown[] };
+    expect(data.conversation).toContain("Beta project kickoff");
+    expect(data.agents).toEqual([]);
+  });
+
+  it("returns agent conversation when agent_id is provided", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-001", agent_id: "agent-xyz" },
+    });
+    const data = parseResult(result) as {
+      session_id: string;
+      agent_id: string;
+      agent_type: string;
+      message_count: number;
+      conversation: string;
+    };
+    expect(data.session_id).toBe("sess-001");
+    expect(data.agent_id).toBe("agent-xyz");
+    expect(data.agent_type).toBe("Explore");
+    expect(data.message_count).toBe(2);
+    expect(data.conversation).toContain("Explore the authentication providers");
+    expect(data.conversation).toContain("Found OAuth and SAML providers");
+    expect(data.conversation).not.toContain("implement the authentication module");
+  });
+
+  it("returns error when agent_id requested but agent-board has no data", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-003", agent_id: "agent-xyz" },
+    });
+    const data = parseResult(result) as { error: string };
+    expect(data.error).toContain("Subagent data not available");
+    expect(data.error).toContain("sess-003");
+  });
+
+  it("returns error when agent_id not found in roster", async () => {
+    const result = await client.callTool({
+      name: "read_session",
+      arguments: { session_id: "sess-001", agent_id: "nonexistent-agent" },
+    });
+    const data = parseResult(result) as { error: string };
+    expect(data.error).toContain("Agent not found");
+    expect(data.error).toContain("sess-001");
+    expect(data.error).toContain("nonexistent-agent");
   });
 });
 
