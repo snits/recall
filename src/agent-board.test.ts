@@ -18,7 +18,7 @@ const SESSION_NO_AGENTS = "sess-no-agents";
 const FIXTURES = {
   [SESSION_WITH_AGENTS]: {
     session: {
-      roster: [{ agentId: "agent-abc", type: "Explore", messageCount: 2 }],
+      agents: [{ agentId: "agent-abc", type: "Explore", messageCount: 2 }],
     },
     messages: [
       {
@@ -108,7 +108,7 @@ const FIXTURES = {
   },
   [SESSION_NO_AGENTS]: {
     session: {
-      roster: [],
+      agents: [],
     },
     messages: [
       {
