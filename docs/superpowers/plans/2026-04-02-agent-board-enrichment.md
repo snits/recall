@@ -297,6 +297,7 @@ export interface ToolUseSummary {
 
 export interface Message {
   uuid: string;
+  parentUuid: string | null;
   agentId: string | null;
   role: "user" | "assistant";
   content: string;
@@ -341,6 +342,7 @@ export class AgentBoardReader {
       const messages: Message[] = messagesJson.map(
         (m: Record<string, unknown>) => ({
           uuid: m.uuid as string,
+          parentUuid: (m.parentUuid as string) ?? null,
           agentId: (m.agentId as string) ?? null,
           role: m.role as "user" | "assistant",
           content: (m.content as string) ?? "",
@@ -721,7 +723,7 @@ import { AgentBoardReader } from "../agent-board.js";
 export function registerReadTool(
   server: McpServer,
   db: RecallDatabase,
-  agentBoard: AgentBoardReader
+  agentBoard?: AgentBoardReader
 ): void {
   server.registerTool(
     "read_session",
@@ -749,8 +751,8 @@ export function registerReadTool(
       }),
     },
     async ({ session_id, agent_id, offset, limit }) => {
-      // Always get metadata from notebook.db
-      const session = db.readSession(session_id, 0, undefined);
+      // Metadata-only check from notebook.db (limit=0 avoids fetching conversation text)
+      const session = db.readSession(session_id, 0, 0);
 
       if (!session) {
         return {
@@ -765,7 +767,7 @@ export function registerReadTool(
         };
       }
 
-      const boardData = agentBoard.getSessionData(session_id);
+      const boardData = agentBoard?.getSessionData(session_id) ?? null;
 
       // Agent-specific conversation requested
       if (agent_id) {
@@ -796,7 +798,7 @@ export function registerReadTool(
           };
         }
 
-        const conversation = agentBoard.formatConversation(
+        const conversation = agentBoard!.formatConversation(
           boardData.messages,
           agent_id,
           offset,
@@ -822,14 +824,14 @@ export function registerReadTool(
       // Main session conversation
       let conversation: string;
       if (boardData) {
-        conversation = agentBoard.formatConversation(
+        conversation = agentBoard!.formatConversation(
           boardData.messages,
           undefined,
           offset,
           limit
         );
       } else {
-        // Fall back to notebook.db
+        // Fall back to notebook.db (fetch with real offset/limit)
         const fallback = db.readSession(session_id, offset, limit);
         conversation = fallback?.conversationText ?? "";
       }
