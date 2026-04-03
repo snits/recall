@@ -52,7 +52,7 @@ export class AgentBoardReader {
       const sessionRaw = JSON.parse(readFileSync(sessionPath, "utf-8"));
       const messagesRaw = JSON.parse(readFileSync(messagesPath, "utf-8"));
 
-      const roster: AgentInfo[] = (sessionRaw.roster ?? []).map(
+      const roster: AgentInfo[] = (sessionRaw.agents ?? []).map(
         (r: Record<string, unknown>) => ({
           agentId: r.agentId as string,
           type: r.type as string,
