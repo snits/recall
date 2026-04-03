@@ -6,6 +6,7 @@ import { join } from "path";
 
 export interface Config {
   databasePath: string;
+  agentBoardPath: string;
 }
 
 export function loadConfig(): Config {
@@ -13,5 +14,9 @@ export function loadConfig(): Config {
     process.env.RECALL_DB_PATH ??
     join(homedir(), ".config", "engineering-notebook", "notebook.db");
 
-  return { databasePath };
+  const agentBoardPath =
+    process.env.AGENT_BOARD_PATH ??
+    join(homedir(), ".local", "share", "agent-board");
+
+  return { databasePath, agentBoardPath };
 }
