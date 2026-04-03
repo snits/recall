@@ -120,7 +120,11 @@ export function registerReadTool(
         conversation = fullSession?.conversationText || "";
       }
 
-      const agents = boardData?.roster ?? [];
+      const agents = (boardData?.roster ?? []).map((a) => ({
+        agent_id: a.agentId,
+        type: a.type,
+        message_count: a.messageCount,
+      }));
 
       const result = {
         session_id: session.sessionId,

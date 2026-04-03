@@ -387,12 +387,12 @@ describe("read_session tool", () => {
       arguments: { session_id: "sess-001" },
     });
     const data = parseResult(result) as {
-      agents: Array<{ agentId: string; type: string; messageCount: number }>;
+      agents: Array<{ agent_id: string; type: string; message_count: number }>;
     };
     expect(data.agents).toHaveLength(1);
-    expect(data.agents[0].agentId).toBe("agent-xyz");
+    expect(data.agents[0].agent_id).toBe("agent-xyz");
     expect(data.agents[0].type).toBe("Explore");
-    expect(data.agents[0].messageCount).toBe(2);
+    expect(data.agents[0].message_count).toBe(2);
   });
 
   it("uses agent-board conversation when available", async () => {
