@@ -6,3 +6,4 @@ recall
 .dolt/
 *.db
 .beads-credential-key
+/.scratchpad/
