@@ -7,3 +7,4 @@ recall
 *.db
 .beads-credential-key
 /.scratchpad/
+.mcp.json
