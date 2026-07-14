@@ -8,3 +8,4 @@ recall
 .beads-credential-key
 /.scratchpad/
 .mcp.json
+.kata.local.toml

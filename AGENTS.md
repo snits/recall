@@ -36,49 +36,32 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
-## Beads Issue Tracker
+<!-- BEGIN KATA (managed by `kata init --with-agents`) -->
+## kata issue tracker
 
-This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
+This project uses [kata](https://github.com/kenn-io/kata) as its shared issue
+ledger. Run `kata quickstart` at the start of each session for the full agent
+contract. The short version:
 
-### Quick Reference
+- Search before creating: `kata search "<keywords>" --agent`.
+- Prefer updating existing issues over duplicates (`kata comment`, `kata label add`, `kata edit`).
+- Default to `--agent` for ordinary reads and mutations; use `--json` only when a script needs structured data.
+- Close only verified work: `kata close <ref> --done --message "<scope + verification>" --commit <sha>`.
+- If work is incomplete, label `needs-review` and comment what remains rather than closing.
+- Never `kata delete` or `kata purge` without explicit user authorization.
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>         # Complete work
-```
+## kata work.* conventions (agent orchestration)
 
-### Rules
+When working a kata-tracked issue, keep its `work.*` metadata truthful
+(see docs/operations/agent-orchestration.md for the full recipe):
 
-- Use `bd` for ALL task tracking — do NOT use TodoWrite, TaskCreate, or markdown TODO lists
-- Run `bd prime` for detailed command reference and session close protocol
-- Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
-
-## Session Completion
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd dolt push
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
-<!-- END BEADS INTEGRATION -->
+- On claim/start: `kata meta set <ref> work.attention ok`; if the work has a
+  dedicated branch, stamp it once with `kata meta set <ref> work.branch <branch>`.
+- Signal live state: `kata meta set <ref> work.attention stuck|needs-human|ok`
+  plus a one-line `work.attention_msg` saying why. Raise `stuck` when you cannot
+  proceed, `needs-human` when you want review; clear back to `ok` when unblocked.
+- Never stop with the signal stale: close the issue, or leave the attention
+  pair reflecting the hand-off.
+- Coordinators read `work.*` on issues they delegated; only the working agent
+  writes them. `work.*` on closed issues is meaningless.
+<!-- END KATA -->
